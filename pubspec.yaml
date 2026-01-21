@@ -1,0 +1,33 @@
+name: rihla2026
+description: Premium travel & events UI prototype (frontend only).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Animations premium
+  flutter_animate: ^4.5.0
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/brand/
+    - assets/backgrounds/
+    - assets/destinations/
+    - assets/events/
+    - assets/avatars/
+    - assets/hotels/
+    - assets/moods/
+
