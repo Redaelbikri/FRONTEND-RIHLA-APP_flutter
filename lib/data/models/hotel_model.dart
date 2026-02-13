@@ -4,8 +4,8 @@ class HotelModel {
   final String city;
   final String image;
   final double rating;
-  final int pricePerNight; // MAD
-  final String tag; // "Best value", "Luxury", ...
+  final int pricePerNight;
+  final String tag;
 
   const HotelModel({
     required this.id,

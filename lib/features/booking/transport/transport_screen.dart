@@ -8,6 +8,8 @@ import '../../../core/ui/glass.dart';
 import 'transport_mode.dart';
 import 'transport_models.dart';
 import 'transport_result_card.dart';
+import 'transport_booking_details_screen.dart';
+
 
 class TransportScreen extends StatefulWidget {
   final TransportMode initialMode;
@@ -198,10 +200,10 @@ class _TransportScreenState extends State<TransportScreen> {
                       return TransportResultCard(
                         r: r,
                         onSelect: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Selected: ${r.brand} (${r.priceMad} MAD)'),
-                              behavior: SnackBarBehavior.floating,
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TransportBookingDetailsScreen(result: r),
                             ),
                           );
                         },
@@ -209,6 +211,7 @@ class _TransportScreenState extends State<TransportScreen> {
                     },
                   ).animate().fadeIn(duration: 240.ms),
                 ),
+
               ],
             ),
           ),

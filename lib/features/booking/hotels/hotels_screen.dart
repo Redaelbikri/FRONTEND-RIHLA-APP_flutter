@@ -6,6 +6,8 @@ import '../../../core/theme/rihla_colors.dart';
 import '../../../core/ui/glass.dart';
 import 'hotel_models.dart';
 import 'hotel_card.dart';
+import 'hotel_booking_screen.dart';
+
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -285,13 +287,15 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       TextButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Booked: ${h.name} (UI only)'),
-                              behavior: SnackBarBehavior.floating,
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => HotelBookingScreen(hotel: h),
                             ),
                           );
                         },
+
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

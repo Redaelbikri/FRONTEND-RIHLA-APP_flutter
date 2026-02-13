@@ -13,7 +13,6 @@ class HotelReview {
     required this.timeAgo,
   });
 }
-
 class Hotel {
   final String name;
   final String city;
@@ -21,7 +20,7 @@ class Hotel {
   final double rating;
   final int reviewsCount;
   final int priceMadPerNight;
-  final List<String> tags; // "Riad", "Pool", "Breakfast"
+  final List<String> tags;
   final List<HotelReview> reviews;
 
   const Hotel({
@@ -38,14 +37,13 @@ class Hotel {
 
 class HotelMock {
   static List<Hotel> hotels(String city) {
-    // city used only for display (UI-only)
     return [
       Hotel(
         name: 'Riad Noor',
         city: city,
         image: 'assets/hotels/hotel_1.jpg',
         rating: 4.8,
-        reviewsCount: 1240,
+        reviewsCount: 124,
         priceMadPerNight: 680,
         tags: const ['Riad', 'Breakfast', 'Old Medina'],
         reviews: const [

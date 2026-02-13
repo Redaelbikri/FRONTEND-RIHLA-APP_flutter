@@ -44,6 +44,9 @@ class Routes {
 
 
   static const eventDetails = '/eventDetails';
+  static const hotelBooking = '/hotel-booking';
+  static const stripePay = '/stripe-pay';
+
 }
 
 class AppRouter {
