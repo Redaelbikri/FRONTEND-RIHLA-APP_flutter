@@ -1,9 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 import '../../core/theme/rihla_colors.dart';
 import '../../core/ui/glass.dart';
 import '../../core/ui/primary_button.dart';
+import 'itinerary_screen.dart';
 
 class TripsScreen extends StatefulWidget {
   const TripsScreen({super.key});
@@ -115,12 +119,26 @@ class _TripsScreenState extends State<TripsScreen> {
       );
       return;
     }
-    final from = _fromCtrl.text.trim();
-    final to = _toCtrl.text.trim();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Generating: $from → $to · $_days days · $_budgetLabel')),
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ItineraryScreen(
+          from: _fromCtrl.text.trim(),
+          to: _toCtrl.text.trim(),
+          start: _start!,
+          end: _end!,
+          budgetMad: _budget,
+          vibes: _vibes.map((e) => e.label).toList(),
+
+          // ✅ Exemple coords (à remplacer par geocoding/backend)
+          fromLatLng: const LatLng(31.6295, -7.9811), // Marrakech
+          toLatLng: const LatLng(35.7595, -5.8340),   // Tangier
+        ),
+      ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

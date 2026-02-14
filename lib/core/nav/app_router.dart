@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../features/ onboarding/onboarding_screen.dart';
 import '../../features/events/events_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/auth/login_screen.dart';
@@ -81,7 +81,6 @@ class AppRouter {
         return RihlaTransitions.fadeThrough(const HotelsScreen());
       case Routes.profile:
         return RihlaTransitions.fadeThrough(const ProfileScreen());
-
 
 
       case Routes.trips:

@@ -1,13 +1,16 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/theme/rihla_colors.dart';
 import '../../../core/ui/glass.dart';
+
+import '../../../data/repositories/hotel_repository_impl.dart';
 import 'hotel_models.dart';
 import 'hotel_card.dart';
 import 'hotel_booking_screen.dart';
-
+import '../../../data/services/hotel_api.dart';
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -21,10 +24,26 @@ class _HotelsScreenState extends State<HotelsScreen> {
   DateTime _checkIn = DateTime.now().add(const Duration(days: 1));
   DateTime _checkOut = DateTime.now().add(const Duration(days: 3));
 
+  late final HotelRepositoryImpl _repo;
+  Future<List<Hotel>>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _repo = HotelRepositoryImpl(HotelApi());
+    _future = _repo.getHotels(cityCtrl.text.trim());
+  }
+
   @override
   void dispose() {
     cityCtrl.dispose();
     super.dispose();
+  }
+
+  void _refresh() {
+    setState(() {
+      _future = _repo.getHotels(cityCtrl.text.trim());
+    });
   }
 
   String _fmt(DateTime d) {
@@ -34,7 +53,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
   }
 
   Future<void> _pickDates() async {
-
     final picked = await showDatePicker(
       context: context,
       initialDate: _checkIn,
@@ -63,7 +81,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final hotels = HotelMock.hotels(cityCtrl.text.trim().isEmpty ? 'Marrakech' : cityCtrl.text.trim());
 
     return Scaffold(
       body: Stack(
@@ -83,7 +100,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
               ),
             ),
           ),
-
           Positioned(
             top: -90,
             left: -70,
@@ -98,7 +114,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
           SafeArea(
             child: Column(
               children: [
-
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                   child: Row(
@@ -126,7 +141,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                           child: Row(
                             children: [
                               Text(
-                                'Hotels • ${cityCtrl.text.isEmpty ? 'Marrakech' : cityCtrl.text}',
+                                'Hotels • ${cityCtrl.text.trim().isEmpty ? 'Marrakech' : cityCtrl.text.trim()}',
                                 style: t.titleMedium?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
@@ -134,15 +149,19 @@ class _HotelsScreenState extends State<HotelsScreen> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const Spacer(),
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                              InkWell(
+                                onTap: _refresh,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                                  ),
+                                  child: const Icon(Icons.refresh_rounded, color: Colors.white),
                                 ),
-                                child: const Icon(Icons.filter_alt_rounded, color: Colors.white),
                               ),
                             ],
                           ),
@@ -151,7 +170,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                     ],
                   ),
                 ),
-
 
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -163,27 +181,144 @@ class _HotelsScreenState extends State<HotelsScreen> {
                         checkOut: _checkOut,
                         fmt: _fmt,
                         onPickDates: _pickDates,
-                        onApply: () => setState(() {}),
+                        onApply: _refresh,
                       ),
                       const SizedBox(height: 10),
-                      _HotelQuickFilters(),
+                      _HotelQuickFilters(
+                        onChanged: (_) => _refresh(),
+                      ),
                     ],
                   ),
                 ),
 
                 Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-                    itemCount: hotels.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) {
-                      final h = hotels[i];
-                      return HotelCard(
-                        h: h,
-                        onTap: () => _openHotelSheet(context, h),
-                      );
+                  child: FutureBuilder<List<Hotel>>(
+                    future: _future,
+                    builder: (context, snap) {
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return Center(
+                          child: Glass(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                            borderRadius: BorderRadius.circular(20),
+                            opacity: 0.28,
+                            blur: 18,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Loading hotels…',
+                                  style: t.titleSmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      if (snap.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+                          child: Glass(
+                            padding: const EdgeInsets.all(16),
+                            borderRadius: BorderRadius.circular(26),
+                            opacity: 0.34,
+                            blur: 18,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 26),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'Cannot load hotels',
+                                  style: t.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${snap.error}',
+                                  style: t.bodyMedium?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.84),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                TextButton(
+                                  onPressed: _refresh,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    backgroundColor: RihlaColors.primary.withValues(alpha: 0.85),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                  ),
+                                  child: Text('Retry', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w900)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      final hotels = snap.data ?? const <Hotel>[];
+
+                      if (hotels.isEmpty) {
+                        return Center(
+                          child: Glass(
+                            padding: const EdgeInsets.all(16),
+                            borderRadius: BorderRadius.circular(26),
+                            opacity: 0.34,
+                            blur: 18,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.search_off_rounded, color: Colors.white, size: 26),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'No hotels found',
+                                  style: t.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Try another city.',
+                                  style: t.bodyMedium?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.84),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+                        itemCount: hotels.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) {
+                          final h = hotels[i];
+                          return HotelCard(
+                            h: h,
+                            onTap: () => _openHotelSheet(context, h),
+                          );
+                        },
+                      ).animate().fadeIn(duration: 240.ms);
                     },
-                  ).animate().fadeIn(duration: 240.ms),
+                  ),
                 ),
               ],
             ),
@@ -214,7 +349,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   ClipRRect(
                     borderRadius: BorderRadius.circular(22),
                     child: Image.asset(
@@ -231,7 +365,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-
                   Row(
                     children: [
                       Expanded(
@@ -248,34 +381,37 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 6),
-
                   Text(
                     '${h.city} • ${h.reviewsCount} reviews',
-                    style: t.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.78), fontWeight: FontWeight.w700),
+                    style: t.labelLarge?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.78),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-
                   const SizedBox(height: 10),
-
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: h.tags.map((e) => _Tag(text: e)).toList(),
                   ),
-
                   const SizedBox(height: 12),
-
                   Text(
                     'Top Reviews',
                     style: t.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
-
-                  ...h.reviews.take(2).map((rv) => _ReviewTile(r: rv)),
-
+                  if (h.reviews.isEmpty)
+                    Text(
+                      'No reviews yet.',
+                      style: t.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  else
+                    ...h.reviews.take(2).map((rv) => _ReviewTile(r: rv)),
                   const SizedBox(height: 10),
-
                   Row(
                     children: [
                       Expanded(
@@ -287,7 +423,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       TextButton(
                         onPressed: () {
                           Navigator.pop(context);
-
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -295,7 +430,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                             ),
                           );
                         },
-
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -415,7 +549,6 @@ class _CityAndDatesRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-
         Expanded(
           flex: 3,
           child: InkWell(
@@ -442,6 +575,9 @@ class _CityAndDatesRow extends StatelessWidget {
 }
 
 class _HotelQuickFilters extends StatefulWidget {
+  final ValueChanged<int>? onChanged;
+  const _HotelQuickFilters({this.onChanged});
+
   @override
   State<_HotelQuickFilters> createState() => _HotelQuickFiltersState();
 }
@@ -457,7 +593,10 @@ class _HotelQuickFiltersState extends State<_HotelQuickFilters> {
         final isActive = i == active;
         return Expanded(
           child: InkWell(
-            onTap: () => setState(() => active = i),
+            onTap: () {
+              setState(() => active = i);
+              widget.onChanged?.call(i);
+            },
             borderRadius: BorderRadius.circular(999),
             child: Container(
               margin: EdgeInsets.only(right: i == items.length - 1 ? 0 : 8),
@@ -535,14 +674,20 @@ class _ReviewTile extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         r.timeAgo,
-                        style: t.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.70), fontWeight: FontWeight.w700),
+                        style: t.labelLarge?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.70),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     r.comment,
-                    style: t.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.84), fontWeight: FontWeight.w600),
+                    style: t.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.84),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -588,7 +733,11 @@ class _BlurBlob extends StatelessWidget {
   Widget build(BuildContext context) {
     return ImageFiltered(
       imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-      child: Container(width: size, height: size, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
     );
   }
 }

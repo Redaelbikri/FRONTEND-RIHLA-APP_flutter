@@ -10,14 +10,31 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Animations premium
-  flutter_animate: ^4.5.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
 
+  dio: ^5.7.0
+  flutter_secure_storage: ^9.2.2
+  pretty_dio_logger: ^1.4.0
+
+  flutter_animate: ^4.5.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+
+  # 🔥 App Icon Generator
+  flutter_launcher_icons: ^0.13.1
+
+# 🔥 CONFIGURATION ICON
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/brand/app_logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#1F6E5C"
+  adaptive_icon_foreground: "assets/brand/app_logo.png"
 
 flutter:
   uses-material-design: true
@@ -30,4 +47,3 @@ flutter:
     - assets/avatars/
     - assets/hotels/
     - assets/moods/
-
