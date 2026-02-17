@@ -12,13 +12,19 @@ class EventsApi {
   }
 
   Future<List<EventModel>> filterByCategory(String category) async {
-    final res = await _dio.get('/api/events/filter/category/$category');
+    final res = await _dio.get(
+      '/api/events/filter/category',
+      queryParameters: {'category': category},
+    );
     final list = (res.data as List).cast<dynamic>();
     return list.map((e) => EventModel.fromJson((e as Map).cast<String, dynamic>())).toList();
   }
 
   Future<List<EventModel>> filterByCity(String city) async {
-    final res = await _dio.get('/api/events/filter/city/$city');
+    final res = await _dio.get(
+      '/api/events/filter/city',
+      queryParameters: {'city': city},
+    );
     final list = (res.data as List).cast<dynamic>();
     return list.map((e) => EventModel.fromJson((e as Map).cast<String, dynamic>())).toList();
   }
@@ -29,12 +35,12 @@ class EventsApi {
     return list.map((e) => EventModel.fromJson((e as Map).cast<String, dynamic>())).toList();
   }
 
-  Future<bool> check(String id, int quantity) async {
-    final res = await _dio.get('/api/events/$id/check', queryParameters: {'quantity': quantity});
-    return (res.data == true);
+  Future<bool> checkAvailability(String id, int quantity) async {
+    final res = await _dio.get('/api/events/$id/availability', queryParameters: {'quantity': quantity});
+    return res.data == true;
   }
 
-  Future<void> reduceStock(String id, int quantity) async {
-    await _dio.put('/api/events/$id/reduce-stock', queryParameters: {'quantity': quantity});
+  Future<void> decreaseStock(String id, int quantity) async {
+    await _dio.post('/api/events/$id/stock/decrease', queryParameters: {'quantity': quantity});
   }
 }
