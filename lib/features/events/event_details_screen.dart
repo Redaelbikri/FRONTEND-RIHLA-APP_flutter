@@ -1,260 +1,184 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../core/theme/rihla_colors.dart';
 import '../../core/ui/glass.dart';
 import '../../core/ui/primary_button.dart';
-import '../../data/mock.dart';
 
-class EventDetailsScreen extends StatelessWidget {
-  final dynamic event;
+import '../../data/models/event_model.dart';
+import '../../data/repositories/reservations_repository.dart';
+import '../../data/api/reservations_api.dart';
+import '../../data/services/api_client.dart';
 
+import '../booking/payment/fake_stripe_payment_screen.dart';
+
+class EventDetailsScreen extends StatefulWidget {
+  final EventModel event;
   const EventDetailsScreen({super.key, required this.event});
+
+  @override
+  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> {
+  int _qty = 1;
+  bool _loading = false;
+
+  late final ReservationsRepository _reservations;
+
+  EventModel get e => widget.event;
+
+  @override
+  void initState() {
+    super.initState();
+    _reservations = ReservationsRepository(ReservationsApi());
+  }
+
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _book() async {
+    if (_loading) return;
+
+    setState(() => _loading = true);
+    try {
+      final reservation = await _reservations.reserveEvent(
+        eventId: e.id,
+        quantity: _qty,
+      );
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FakeStripePaymentScreen(
+            merchantName: e.nom,
+            title: 'Event tickets',
+            subtitle: '${e.lieu} • $_qty ticket(s)',
+            amountMad: (e.prix * _qty).toDouble(),
+            meta: 'reservationId=${reservation.id}',
+            reservationId: reservation.id,
+          ),
+        ),
+      );
+    } catch (err) {
+      if (!mounted) return;
+      final msg = err is ApiException ? err.message : 'Booking failed';
+      _toast(msg);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-
-    final MockEvent e = event is MockEvent
-        ? event as MockEvent
-        : const MockEvent(
-      title: 'Event',
-      category: 'Category',
-      image: 'assets/backgrounds/home_bg.jpg',
-      location: 'City',
-      dateLabel: 'Date',
-      description: 'Description unavailable.',
-    );
+    final img = e.imageUrl.isNotEmpty ? e.imageUrl : 'assets/events/event_1.jpg';
 
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-
-          Image.asset(e.image, fit: BoxFit.cover),
-
-
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withValues(alpha: 0.15),
-                  Colors.black.withValues(alpha: 0.10),
-                  Colors.black.withValues(alpha: 0.68),
-                ],
-              ),
+          Image.asset(
+            img,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Image.asset(
+              'assets/events/event_1.jpg',
+              fit: BoxFit.cover,
             ),
           ),
-
-
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(color: Colors.black.withOpacity(0.35)),
+          ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: Row(
-                children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
-                      ),
-                      child: const Icon(Icons.chevron_left_rounded, color: Colors.white, size: 22),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
-                  ),
-                  const Spacer(),
-                  Glass(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    borderRadius: BorderRadius.circular(18),
-                    opacity: 0.30,
-                    blur: 18,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.local_activity_rounded, color: Colors.white, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Details',
-                          style: t.labelLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                child: Glass(
-                  padding: const EdgeInsets.all(18),
-                  borderRadius: BorderRadius.circular(30),
-                  opacity: 0.42,
-                  blur: 20,
+                    const Spacer(),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Glass(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
-                        ),
-                        child: Text(
-                          e.category,
-                          style: t.labelLarge?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.92),
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
                       Text(
-                        e.title,
-                        style: t.headlineMedium?.copyWith(
+                        e.nom,
+                        style: t.headlineSmall?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
-                      _MetaRow(
-                        icon: Icons.place_rounded,
-                        text: e.location,
+                      Text(
+                        '${e.categorie} • ${e.lieu}',
+                        style: t.bodyMedium?.copyWith(color: Colors.white70),
                       ),
-                      const SizedBox(height: 6),
-                      _MetaRow(
-                        icon: Icons.schedule_rounded,
-                        text: e.dateLabel,
-                      ),
-
                       const SizedBox(height: 12),
-
                       Text(
                         e.description,
-                        style: t.bodyLarge?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.86),
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: t.bodyMedium?.copyWith(color: Colors.white),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          Text('Tickets', style: t.bodyMedium?.copyWith(color: Colors.white70)),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: (_qty > 1 && !_loading) ? () => setState(() => _qty--) : null,
+                            icon: const Icon(Icons.remove_circle_outline, color: Colors.white),
+                          ),
+                          Text('$_qty', style: t.titleMedium?.copyWith(color: Colors.white)),
+                          IconButton(
+                            onPressed: !_loading ? () => setState(() => _qty++) : null,
+                            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 14),
 
-                      Row(
-                        children: [
-                          Expanded(
-                            child: PrimaryButton(
-                              text: 'Save to itinerary',
-                              icon: Icons.bookmark_add_rounded,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Saved (UI only).')),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 60,
-                            child: PrimaryButton(
-                              text: '',
-                              icon: Icons.share_rounded,
-                              expanded: true,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Share (UI only).')),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                      // ✅ FIX: PrimaryButton API (text/icon/onTap) to match your project
+                      Opacity(
+                        opacity: _loading ? 0.75 : 1,
+                        child: PrimaryButton(
+                          text: _loading
+                              ? 'Processing...'
+                              : 'Book now • ${(e.prix * _qty).toStringAsFixed(0)} MAD',
+                          icon: Icons.confirmation_number_rounded,
+                          onTap: _loading ? null : _book,
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // optional small hint (keeps UI style)
+                      Text(
+                        'Secure payment via backend reservation.',
+                        style: t.labelMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.65),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
-                )
-                    .animate()
-                    .fadeIn(duration: 260.ms)
-                    .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
-              ),
+                ).animate().fadeIn(duration: 250.ms).slideY(begin: .06, end: 0),
+              ],
             ),
-          ),
-
-
-          Positioned(
-            top: 90,
-            right: -70,
-            child: _BlurBlob(size: 240, color: RihlaColors.accent.withValues(alpha: 0.14)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MetaRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _MetaRow({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white.withValues(alpha: 0.90), size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: t.bodyMedium?.copyWith(
-              color: Colors.white.withValues(alpha: 0.86),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BlurBlob extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _BlurBlob({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }

@@ -1,40 +1,52 @@
 class HotelModel {
-  final int id;
-  final String nom;
-  final String ville;
-  final String adresse;
-  final String type;
-  final double prixParNuit;
-  final int chambresDisponibles;
-  final double note;
-  final String imageUrl;
-  final bool actif;
+  final String? id;
+  final String? nom;
+  final String? ville;
+  final String? type;
+  // Enum côté backend :
+  // HOTEL, RIAD, APPARTEMENT, MAISON_HOTE
 
-  HotelModel({
-    required this.id,
-    required this.nom,
-    required this.ville,
-    required this.adresse,
-    required this.type,
-    required this.prixParNuit,
-    required this.chambresDisponibles,
-    required this.note,
-    required this.imageUrl,
-    required this.actif,
+  final num? prixParNuit;
+  final num? note;
+  final String? imageUrl;
+  final int? chambresDisponibles;
+
+  const HotelModel({
+    this.id,
+    this.nom,
+    this.ville,
+    this.type,
+    this.prixParNuit,
+    this.note,
+    this.imageUrl,
+    this.chambresDisponibles,
   });
 
   factory HotelModel.fromJson(Map<String, dynamic> json) {
     return HotelModel(
-      id: json['id'],
-      nom: json['nom'] ?? '',
-      ville: json['ville'] ?? '',
-      adresse: json['adresse'] ?? '',
-      type: json['type'] ?? '',
-      prixParNuit: (json['prixParNuit'] as num?)?.toDouble() ?? 0.0,
-      chambresDisponibles: json['chambresDisponibles'] ?? 0,
-      note: (json['note'] as num?)?.toDouble() ?? 0.0,
-      imageUrl: json['imageUrl'] ?? '',
-      actif: json['actif'] ?? true,
+      id: json['id']?.toString(),
+      nom: json['nom']?.toString(),
+      ville: json['ville']?.toString(),
+      type: json['type']?.toString(),
+      prixParNuit: json['prixParNuit'] as num?,
+      note: json['note'] as num?,
+      imageUrl: json['imageUrl']?.toString(),
+      chambresDisponibles: json['chambresDisponibles'] is int
+          ? json['chambresDisponibles'] as int
+          : int.tryParse('${json['chambresDisponibles']}'),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nom': nom,
+      'ville': ville,
+      'type': type,
+      'prixParNuit': prixParNuit,
+      'note': note,
+      'imageUrl': imageUrl,
+      'chambresDisponibles': chambresDisponibles,
+    };
   }
 }

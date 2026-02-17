@@ -9,6 +9,9 @@ import '../../core/ui/glass.dart';
 import '../../core/ui/primary_button.dart';
 import '../../core/ui/rihla_field.dart';
 
+import '../../data/services/auth_api.dart';
+import '../../data/services/api_client.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController(text: '');
   final _pass = TextEditingController(text: '');
   bool _hide = true;
+
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -36,6 +41,40 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.pushNamed(context, Routes.signup);
   }
 
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
+
+  Future<void> _login() async {
+    final email = _email.text.trim();
+    final pass = _pass.text.trim();
+
+    if (email.isEmpty || !email.contains('@')) {
+      _toast('Please enter a valid email.');
+      return;
+    }
+    if (pass.isEmpty) {
+      _toast('Please enter your password.');
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await AuthApi().login(email: email, password: pass);
+
+      if (!mounted) return;
+      _goShell();
+    } catch (e) {
+      final msg = (e is ApiException) ? e.message : 'Login failed';
+      if (!mounted) return;
+      _toast(msg);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -45,7 +84,6 @@ class _LoginScreenState extends State<LoginScreen> {
         fit: StackFit.expand,
         children: [
           Image.asset('assets/backgrounds/auth_bg.jpg', fit: BoxFit.cover),
-
 
           Container(
             decoration: BoxDecoration(
@@ -61,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-
           Positioned(
             top: -70,
             left: -40,
@@ -76,7 +113,6 @@ class _LoginScreenState extends State<LoginScreen> {
           SafeArea(
             child: Column(
               children: [
-
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                   child: Row(
@@ -200,9 +236,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 12),
 
                               PrimaryButton(
-                                text: 'Sign In',
+                                text: _loading ? 'Signing in...' : 'Sign In',
                                 icon: Icons.arrow_forward_rounded,
-                                onTap: _goShell,
+                                onTap: _loading ? null : _login,
                               ),
 
                               const SizedBox(height: 12),
@@ -211,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 text: 'Create an account',
                                 icon: Icons.person_add_alt_1_rounded,
                                 isSecondary: true,
-                                onTap: _goSignUp,
+                                onTap: _loading ? null : _goSignUp,
                               ),
                             ],
                           ),

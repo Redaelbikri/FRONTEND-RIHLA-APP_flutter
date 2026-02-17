@@ -19,6 +19,8 @@ import '../../features/booking/hotels/hotels_screen.dart';
 import '../../features/booking/tickets/tickets_screen.dart';
 
 import '../../features/trips/trips_screen.dart';
+import '../../data/models/event_model.dart';
+
 import 'transitions.dart';
 
 class Routes {
@@ -27,7 +29,6 @@ class Routes {
   static const login = '/login';
   static const signup = '/signup';
   static const shell = '/shell';
-
 
   static const bookingHub = '/booking';
   static const tickets = '/tickets';
@@ -42,11 +43,9 @@ class Routes {
   static const notifications = '/notifications';
   static const settings = '/settings';
 
-
   static const eventDetails = '/eventDetails';
   static const hotelBooking = '/hotel-booking';
   static const stripePay = '/stripe-pay';
-
 }
 
 class AppRouter {
@@ -67,7 +66,6 @@ class AppRouter {
       case Routes.shell:
         return RihlaTransitions.fadeThrough(const BottomShell());
 
-
       case Routes.bookingHub:
         return RihlaTransitions.fadeThrough(const BookingHubScreen());
 
@@ -79,9 +77,9 @@ class AppRouter {
 
       case Routes.hotels:
         return RihlaTransitions.fadeThrough(const HotelsScreen());
+
       case Routes.profile:
         return RihlaTransitions.fadeThrough(const ProfileScreen());
-
 
       case Routes.trips:
         return RihlaTransitions.fadeThrough(const TripsScreen());
@@ -89,17 +87,19 @@ class AppRouter {
       case Routes.events:
         return RihlaTransitions.fadeThrough(const EventsScreen());
 
-
       case Routes.eventDetails:
-
-
+      // ✅ FIX: enforce correct type
         final args = settings.arguments;
+        if (args is! EventModel) {
+          return _badArgsRoute(
+            settings.name,
+            expected: 'EventModel',
+            got: args.runtimeType.toString(),
+          );
+        }
         return RihlaTransitions.slideUp(
           EventDetailsScreen(event: args),
         );
-
-
-
 
       case Routes.editProfile:
         return RihlaTransitions.slideUp(const EditProfileScreen());
@@ -119,5 +119,25 @@ class AppRouter {
           ),
         );
     }
+  }
+
+  static Route<dynamic> _badArgsRoute(
+      String? routeName, {
+        required String expected,
+        required String got,
+      }) {
+    return RihlaTransitions.fadeThrough(
+      Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Bad arguments for route: $routeName\nExpected: $expected\nGot: $got',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

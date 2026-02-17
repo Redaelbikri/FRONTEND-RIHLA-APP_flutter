@@ -9,6 +9,9 @@ import '../../core/ui/glass.dart';
 import '../../core/ui/primary_button.dart';
 import '../../core/ui/rihla_field.dart';
 
+import '../../data/services/auth_api.dart';
+import '../../data/services/api_client.dart';
+
 enum TravelerType { local, mre, foreigner }
 
 extension TravelerTypeX on TravelerType {
@@ -64,6 +67,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _hide = true;
   bool _agree = true;
 
+  bool _loading = false;
+
   TravelerType _type = TravelerType.local;
 
   @override
@@ -80,6 +85,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String get _idLabel => (_type == TravelerType.foreigner) ? 'Passport' : 'CIN';
   String get _idHint => (_type == TravelerType.foreigner) ? 'e.g. XH928104' : 'e.g. AB123456';
   IconData get _idIcon => (_type == TravelerType.foreigner) ? Icons.badge_rounded : Icons.credit_card_rounded;
+
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
   String? _validateName(String? v) {
     final s = (v ?? '').trim();
@@ -109,26 +118,68 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return null;
   }
 
-  void _create() {
+  /// Backend needs {nom, prenom}
+  Map<String, String> _splitName(String full) {
+    final parts = full.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return {'prenom': '', 'nom': ''};
+    if (parts.length == 1) return {'prenom': parts[0], 'nom': parts[0]};
+    final prenom = parts.first;
+    final nom = parts.sublist(1).join(' ');
+    return {'prenom': prenom, 'nom': nom};
+  }
+
+  Future<void> _create() async {
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok) return;
 
     if (!_agree) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please accept the privacy terms.')),
-      );
+      _toast('Please accept the privacy terms.');
       return;
     }
 
-    // UI only (backend later)
-    Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (r) => false);
+    final fullName = _name.text.trim();
+    final email = _email.text.trim();
+    final pass = _pass.text.trim();
+
+    final nameParts = _splitName(fullName);
+    final prenom = nameParts['prenom']!;
+    final nom = nameParts['nom']!;
+
+    if (prenom.isEmpty || nom.isEmpty) {
+      _toast('Please enter your full name.');
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      // Backend signup fields: nom, prenom, email, password, telephone?
+      await AuthApi().signup(
+        nom: nom,
+        prenom: prenom,
+        email: email,
+        password: pass,
+        telephone: null, // UI doesn’t have phone field; keep null
+      );
+
+      // Optional: auto-login after signup
+      await AuthApi().login(email: email, password: pass);
+
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, Routes.shell, (r) => false);
+    } catch (e) {
+      final msg = (e is ApiException) ? e.message : 'Sign up failed';
+      if (!mounted) return;
+      _toast(msg);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _setType(TravelerType t) {
     if (_type == t) return;
     setState(() {
       _type = t;
-      _idCtrl.clear(); // important: avoid mixing CIN/Passport
+      _idCtrl.clear(); // avoid mixing CIN/Passport
     });
   }
 
@@ -170,7 +221,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Top bar
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                   child: Row(
@@ -236,7 +286,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                                 const SizedBox(height: 16),
 
-                                // Traveler type (chips)
                                 _TravelerTypeCard(
                                   value: _type,
                                   onChanged: _setType,
@@ -264,7 +313,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 ),
                                 const SizedBox(height: 12),
 
-                                // CIN / Passport
                                 Glass(
                                   padding: const EdgeInsets.all(14),
                                   borderRadius: BorderRadius.circular(26),
@@ -347,15 +395,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                                 const SizedBox(height: 12),
 
-                                // Privacy checkbox (simple)
                                 InkWell(
                                   borderRadius: BorderRadius.circular(18),
-                                  onTap: () => setState(() => _agree = !_agree),
+                                  onTap: _loading ? null : () => setState(() => _agree = !_agree),
                                   child: Row(
                                     children: [
                                       Checkbox(
                                         value: _agree,
-                                        onChanged: (v) => setState(() => _agree = v ?? true),
+                                        onChanged: _loading ? null : (v) => setState(() => _agree = v ?? true),
                                         activeColor: const Color(0xFFFFD58A),
                                         checkColor: Colors.black,
                                       ),
@@ -375,9 +422,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 const SizedBox(height: 10),
 
                                 PrimaryButton(
-                                  text: 'Create account',
+                                  text: _loading ? 'Creating...' : 'Create account',
                                   icon: Icons.check_circle_rounded,
-                                  onTap: _create,
+                                  onTap: _loading ? null : _create,
                                 ),
 
                                 const SizedBox(height: 12),
@@ -386,7 +433,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   text: 'I already have an account',
                                   icon: Icons.login_rounded,
                                   isSecondary: true,
-                                  onTap: _goLogin,
+                                  onTap: _loading ? null : _goLogin,
                                 ),
                               ],
                             ),

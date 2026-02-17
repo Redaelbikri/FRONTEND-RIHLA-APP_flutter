@@ -7,6 +7,7 @@ import '../../../core/ui/glass.dart';
 import '../../../core/ui/primary_button.dart';
 
 class FakeStripePaymentScreen extends StatefulWidget {
+  final String? reservationId;
   final String merchantName;
   final String title;
   final double amountMad;
@@ -15,6 +16,7 @@ class FakeStripePaymentScreen extends StatefulWidget {
 
   const FakeStripePaymentScreen({
     super.key,
+    this.reservationId,
     required this.merchantName,
     required this.title,
     required this.amountMad,
@@ -46,15 +48,17 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
   }
 
   bool get _canPay {
+    if (_paying) return false;
+
     final nameOk = _nameCtrl.text.trim().isNotEmpty;
-    final emailOk = _emailCtrl.text.trim().isNotEmpty;
+    final email = _emailCtrl.text.trim();
+    final emailOk = email.isNotEmpty && email.contains('@') && email.contains('.');
     final cardOk = _cardCtrl.text.replaceAll(' ', '').trim().length >= 12;
     final expOk = _expCtrl.text.trim().length >= 4; // MM/YY
     final cvcOk = _cvcCtrl.text.trim().length >= 3;
-    return nameOk && emailOk && cardOk && expOk && cvcOk && !_paying;
+    return nameOk && emailOk && cardOk && expOk && cvcOk;
   }
 
-  // Simple UI-only formatting
   void _formatCard(String v) {
     final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
     final buf = StringBuffer();
@@ -78,7 +82,8 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
     if (digits.length <= 2) {
       out = digits;
     } else {
-      out = '${digits.substring(0, 2)}/${digits.substring(2, digits.length.clamp(2, 4))}';
+      final yy = digits.substring(2, digits.length.clamp(2, 4));
+      out = '${digits.substring(0, 2)}/$yy';
     }
     if (out.length > 5) out = out.substring(0, 5);
     if (out != _expCtrl.text) {
@@ -89,21 +94,26 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
     }
   }
 
-  void _payNow() async {
+  Future<void> _payNow() async {
     if (!_canPay) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete card details.')),
+        const SnackBar(content: Text('Please complete valid card details.')),
       );
       return;
     }
 
     setState(() => _paying = true);
-    await Future.delayed(const Duration(milliseconds: 900));
+
+    // ✅ This screen is still "Fake Stripe" (no real Stripe).
+    // But we return success + reservationId to previous screen to continue flow.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
     if (!mounted) return;
     setState(() => _paying = false);
 
-    showDialog(
+    await showDialog(
       context: context,
+      barrierDismissible: false,
       barrierColor: Colors.black.withValues(alpha: 0.55),
       builder: (_) => Center(
         child: Glass(
@@ -133,7 +143,7 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Fake Stripe flow (UI only).',
+                'Demo payment completed.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white.withValues(alpha: 0.82),
                   fontWeight: FontWeight.w600,
@@ -142,16 +152,25 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
               const SizedBox(height: 12),
               PrimaryButton(
                 text: 'Done',
-                icon: Icons.home_rounded,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
+                icon: Icons.check_circle_rounded,
+                onTap: () => Navigator.pop(context),
               ),
             ],
           ),
         ).animate().fadeIn(duration: 220.ms).scale(begin: const Offset(0.98, 0.98)),
       ),
+    );
+
+    // ✅ Return success result to caller
+    if (!mounted) return;
+    Navigator.pop(
+      context,
+      {
+        'paid': true,
+        'reservationId': widget.reservationId,
+        'amountMad': widget.amountMad,
+        'email': _emailCtrl.text.trim(),
+      },
     );
   }
 
@@ -177,7 +196,6 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
               ),
             ),
           ),
-
           Positioned(
             top: -80,
             right: -60,
@@ -188,7 +206,6 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
             left: -80,
             child: _BlurBlob(size: 420, color: RihlaColors.primary.withValues(alpha: 0.12)),
           ),
-
           SafeArea(
             child: Column(
               children: [
@@ -197,7 +214,7 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                   child: Row(
                     children: [
                       InkWell(
-                        onTap: () => Navigator.pop(context),
+                        onTap: _paying ? null : () => Navigator.pop(context),
                         borderRadius: BorderRadius.circular(18),
                         child: Glass(
                           padding: const EdgeInsets.all(10),
@@ -218,15 +235,16 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                             children: [
                               const Icon(Icons.lock_rounded, color: Colors.white, size: 18),
                               const SizedBox(width: 8),
-                              Text(
-                                widget.merchantName,
-                                style: t.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
+                              Expanded(
+                                child: Text(
+                                  widget.merchantName,
+                                  style: t.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                              const Spacer(),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
@@ -249,7 +267,6 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                     ],
                   ),
                 ),
-
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -281,17 +298,17 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              Text(
-                                widget.meta,
-                                style: t.labelLarge?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.78),
-                                  fontWeight: FontWeight.w700,
+                              if (widget.meta.trim().isNotEmpty)
+                                Text(
+                                  widget.meta,
+                                  style: t.labelLarge?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.78),
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ),
                               const SizedBox(height: 14),
                               Container(height: 1, color: Colors.white.withValues(alpha: 0.12)),
                               const SizedBox(height: 14),
-
                               Row(
                                 children: [
                                   Text(
@@ -311,10 +328,8 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                                   ),
                                 ],
                               ),
-
                               const SizedBox(height: 14),
 
-                              // ✅ Payment form
                               _InputGlass(
                                 label: 'Cardholder name',
                                 hint: 'Name on card',
@@ -333,7 +348,6 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                                 onChanged: (_) => setState(() {}),
                               ),
                               const SizedBox(height: 10),
-
                               _InputGlass(
                                 label: 'Card number',
                                 hint: '1234 5678 9012 3456',
@@ -347,7 +361,6 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                                 },
                               ),
                               const SizedBox(height: 10),
-
                               Row(
                                 children: [
                                   Expanded(
@@ -378,10 +391,7 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                                   ),
                                 ],
                               ),
-
                               const SizedBox(height: 14),
-
-
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 decoration: BoxDecoration(
@@ -395,7 +405,7 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        'Encrypted & secure (demo UI).',
+                                        'Encrypted & secure (demo).',
                                         style: t.bodyMedium?.copyWith(
                                           color: Colors.white.withValues(alpha: 0.84),
                                           fontWeight: FontWeight.w700,
@@ -424,9 +434,7 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 14),
-
                         Glass(
                           padding: const EdgeInsets.all(14),
                           borderRadius: BorderRadius.circular(26),
@@ -438,7 +446,7 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'This payment is simulated for demo purposes. No real transaction.',
+                                  'This payment is simulated for demo purposes.',
                                   style: t.bodyMedium?.copyWith(
                                     color: Colors.white.withValues(alpha: 0.82),
                                     fontWeight: FontWeight.w600,
@@ -448,16 +456,12 @@ class _FakeStripePaymentScreenState extends State<FakeStripePaymentScreen> {
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 16),
 
-                        Opacity(
-                          opacity: _canPay ? 1 : 0.70,
-                          child: PrimaryButton(
-                            text: _paying ? 'Processing…' : 'Pay now',
-                            icon: Icons.lock_rounded,
-                            onTap: _paying ? () {} : _payNow,
-                          ),
+                        PrimaryButton(
+                          text: _paying ? 'Processing…' : 'Pay now',
+                          icon: Icons.lock_rounded,
+                          onTap: _canPay ? _payNow : null,
                         ),
                       ],
                     ),

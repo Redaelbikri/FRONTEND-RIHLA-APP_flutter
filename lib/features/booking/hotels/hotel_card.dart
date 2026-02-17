@@ -1,134 +1,109 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+
+import '../../../core/theme/rihla_colors.dart';
 import '../../../core/ui/glass.dart';
-import 'hotel_models.dart';
+import '../../../data/models/hotel_model.dart';
 
 class HotelCard extends StatelessWidget {
-  final Hotel h;
+  final HotelModel hotel;
   final VoidCallback onTap;
 
-  const HotelCard({super.key, required this.h, required this.onTap});
+  const HotelCard({
+    super.key,
+    required this.hotel,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
 
+    final name = (hotel.nom ?? 'Hotel').trim();
+    final city = (hotel.ville ?? 'Unknown').trim();
+    final image = (hotel.imageUrl ?? '').trim();
+    final rating = (hotel.note ?? 0).toDouble();
+    final price = (hotel.prixParNuit ?? 0).toDouble();
+
+    final hasNetworkImage = image.isNotEmpty && (image.startsWith('http://') || image.startsWith('https://'));
+
     return InkWell(
-      onTap: onTap,
       borderRadius: BorderRadius.circular(26),
+      onTap: onTap,
       child: Glass(
         padding: const EdgeInsets.all(12),
         borderRadius: BorderRadius.circular(26),
-        opacity: 0.42,
+        opacity: 0.34,
         blur: 18,
         child: Row(
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                h.image,
+              child: SizedBox(
                 width: 92,
                 height: 92,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 92,
-                  height: 92,
-                  color: Colors.white.withValues(alpha: 0.12),
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.hotel_rounded, color: Colors.white),
+                child: hasNetworkImage
+                    ? Image.network(image, fit: BoxFit.cover)
+                    : Image.asset(
+                  image.isNotEmpty ? image : 'assets/hotels/hotel_1.jpg',
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    h.name,
-                    style: t.titleMedium?.copyWith(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    h.city,
-                    style: t.labelLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.78),
-                      fontWeight: FontWeight.w700,
+                    city,
+                    style: t.bodyMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.84),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
-
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: h.tags.take(3).map((tag) => _Tag(text: tag)).toList(),
-                  ),
-
                   const SizedBox(height: 10),
-
                   Row(
                     children: [
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                      const Icon(Icons.star_rounded, color: Colors.white, size: 18),
                       const SizedBox(width: 4),
                       Text(
-                        '${h.rating.toStringAsFixed(1)}',
-                        style: t.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '(${h.reviewsCount})',
-                        style: t.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.70), fontWeight: FontWeight.w700),
+                        rating.toStringAsFixed(1),
+                        style: t.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       const Spacer(),
-                      Text(
-                        '${h.priceMadPerNight} MAD',
-                        style: t.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '/night',
-                        style: t.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.70), fontWeight: FontWeight.w700),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          gradient: RihlaColors.premiumGradient,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '${price.toStringAsFixed(0)} MAD',
+                          style: t.labelLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white),
           ],
-        ),
-      ).animate().fadeIn(duration: 240.ms).slideY(begin: 0.06, end: 0),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  final String text;
-  const _Tag({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-      ),
-      child: Text(
-        text,
-        style: t.labelMedium?.copyWith(
-          color: Colors.white.withValues(alpha: 0.86),
-          fontWeight: FontWeight.w900,
         ),
       ),
     );

@@ -1,10 +1,10 @@
 class EventModel {
-  final int id;
+  final String id;
   final String nom;
   final String description;
   final String lieu;
   final String categorie;
-  final String dateEvent;
+  final DateTime? dateEvent; // backend LocalDateTime
   final double prix;
   final int placesDisponibles;
   final String imageUrl;
@@ -22,16 +22,17 @@ class EventModel {
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
+    final rawDate = json['dateEvent']?.toString();
     return EventModel(
-      id: json['id'],
-      nom: json['nom'],
-      description: json['description'],
-      lieu: json['lieu'],
-      categorie: json['categorie'],
-      dateEvent: json['dateEvent'],
-      prix: (json['prix'] as num).toDouble(),
-      placesDisponibles: json['placesDisponibles'],
-      imageUrl: json['imageUrl'] ?? '',
+      id: (json['id'] ?? '').toString(),
+      nom: (json['nom'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
+      lieu: (json['lieu'] ?? '').toString(),
+      categorie: (json['categorie'] ?? '').toString(),
+      dateEvent: rawDate == null || rawDate.isEmpty ? null : DateTime.tryParse(rawDate),
+      prix: (json['prix'] as num?)?.toDouble() ?? 0.0,
+      placesDisponibles: (json['placesDisponibles'] as num?)?.toInt() ?? 0,
+      imageUrl: (json['imageUrl'] ?? '').toString(),
     );
   }
 }

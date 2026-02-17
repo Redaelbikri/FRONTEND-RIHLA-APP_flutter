@@ -1,16 +1,14 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/theme/rihla_colors.dart';
 import '../../../core/ui/glass.dart';
-
+import '../../../data/api/hebergements_api.dart';
+import '../../../data/models/hotel_model.dart';
 import '../../../data/repositories/hotel_repository_impl.dart';
-import 'hotel_models.dart';
-import 'hotel_card.dart';
 import 'hotel_booking_screen.dart';
-import '../../../data/services/hotel_api.dart';
+import 'hotel_card.dart';
 
 class HotelsScreen extends StatefulWidget {
   const HotelsScreen({super.key});
@@ -20,62 +18,28 @@ class HotelsScreen extends StatefulWidget {
 }
 
 class _HotelsScreenState extends State<HotelsScreen> {
-  final cityCtrl = TextEditingController(text: 'Marrakech');
-  DateTime _checkIn = DateTime.now().add(const Duration(days: 1));
-  DateTime _checkOut = DateTime.now().add(const Duration(days: 3));
+  final _cityCtrl = TextEditingController(text: 'Marrakech');
 
   late final HotelRepositoryImpl _repo;
-  Future<List<Hotel>>? _future;
+  late Future<List<HotelModel>> _future;
 
   @override
   void initState() {
     super.initState();
-    _repo = HotelRepositoryImpl(HotelApi());
-    _future = _repo.getHotels(cityCtrl.text.trim());
+    _repo = HotelRepositoryImpl(HebergementsApi());
+    _future = _repo.getHotels(_cityCtrl.text);
   }
 
   @override
   void dispose() {
-    cityCtrl.dispose();
+    _cityCtrl.dispose();
     super.dispose();
   }
 
-  void _refresh() {
+  void _reload() {
     setState(() {
-      _future = _repo.getHotels(cityCtrl.text.trim());
+      _future = _repo.getHotels(_cityCtrl.text);
     });
-  }
-
-  String _fmt(DateTime d) {
-    final dd = d.day.toString().padLeft(2, '0');
-    final mm = d.month.toString().padLeft(2, '0');
-    return '$dd/$mm';
-  }
-
-  Future<void> _pickDates() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _checkIn,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: RihlaColors.primary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _checkIn = picked;
-        _checkOut = picked.add(const Duration(days: 2));
-      });
-    }
   }
 
   @override
@@ -86,29 +50,25 @@ class _HotelsScreenState extends State<HotelsScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/backgrounds/hotels_bg.jpg', fit: BoxFit.cover),
+          Image.asset('assets/backgrounds/home_bg.jpg', fit: BoxFit.cover),
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.30),
-                  Colors.black.withValues(alpha: 0.12),
-                  Colors.black.withValues(alpha: 0.70),
+                  Colors.black.withValues(alpha: 0.14),
+                  Colors.black.withValues(alpha: 0.08),
+                  Colors.black.withValues(alpha: 0.26),
+                  Colors.black.withValues(alpha: 0.55),
                 ],
               ),
             ),
           ),
           Positioned(
-            top: -90,
-            left: -70,
-            child: _BlurBlob(size: 320, color: RihlaColors.accent.withValues(alpha: 0.12)),
-          ),
-          Positioned(
-            bottom: -130,
-            right: -90,
-            child: _BlurBlob(size: 420, color: RihlaColors.primary.withValues(alpha: 0.12)),
+            top: -70,
+            left: -40,
+            child: _BlurBlob(size: 260, color: RihlaColors.accent.withValues(alpha: 0.14)),
           ),
 
           SafeArea(
@@ -121,13 +81,11 @@ class _HotelsScreenState extends State<HotelsScreen> {
                       InkWell(
                         onTap: () => Navigator.pop(context),
                         borderRadius: BorderRadius.circular(18),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-                          ),
+                        child: Glass(
+                          padding: const EdgeInsets.all(10),
+                          borderRadius: BorderRadius.circular(18),
+                          opacity: 0.26,
+                          blur: 18,
                           child: const Icon(Icons.chevron_left_rounded, color: Colors.white),
                         ),
                       ),
@@ -136,32 +94,24 @@ class _HotelsScreenState extends State<HotelsScreen> {
                         child: Glass(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           borderRadius: BorderRadius.circular(22),
-                          opacity: 0.36,
+                          opacity: 0.32,
                           blur: 18,
                           child: Row(
                             children: [
-                              Text(
-                                'Hotels • ${cityCtrl.text.trim().isEmpty ? 'Marrakech' : cityCtrl.text.trim()}',
-                                style: t.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Spacer(),
-                              InkWell(
-                                onTap: _refresh,
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                              const Icon(Icons.hotel_rounded, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Hotels',
+                                  style: t.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                  child: const Icon(Icons.refresh_rounded, color: Colors.white),
                                 ),
+                              ),
+                              IconButton(
+                                onPressed: _reload,
+                                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
                               ),
                             ],
                           ),
@@ -172,151 +122,88 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 ),
 
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Column(
-                    children: [
-                      _CityAndDatesRow(
-                        cityCtrl: cityCtrl,
-                        checkIn: _checkIn,
-                        checkOut: _checkOut,
-                        fmt: _fmt,
-                        onPickDates: _pickDates,
-                        onApply: _refresh,
-                      ),
-                      const SizedBox(height: 10),
-                      _HotelQuickFilters(
-                        onChanged: (_) => _refresh(),
-                      ),
-                    ],
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: Glass(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    borderRadius: BorderRadius.circular(22),
+                    opacity: 0.28,
+                    blur: 18,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_city_rounded, color: Colors.white, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _cityCtrl,
+                            style: t.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'Search city',
+                              hintStyle: t.titleMedium?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                fontWeight: FontWeight.w800,
+                              ),
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            onSubmitted: (_) => _reload(),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _reload,
+                          child: Text('Search', style: t.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 Expanded(
-                  child: FutureBuilder<List<Hotel>>(
+                  child: FutureBuilder<List<HotelModel>>(
                     future: _future,
                     builder: (context, snap) {
                       if (snap.connectionState == ConnectionState.waiting) {
-                        return Center(
-                          child: Glass(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                            borderRadius: BorderRadius.circular(20),
-                            opacity: 0.28,
-                            blur: 18,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Loading hotels…',
-                                  style: t.titleSmall?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
+                        return const Center(child: CircularProgressIndicator(color: Colors.white));
                       }
-
                       if (snap.hasError) {
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
-                          child: Glass(
-                            padding: const EdgeInsets.all(16),
-                            borderRadius: BorderRadius.circular(26),
-                            opacity: 0.34,
-                            blur: 18,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 26),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Cannot load hotels',
-                                  style: t.titleLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '${snap.error}',
-                                  style: t.bodyMedium?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.84),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 12),
-                                TextButton(
-                                  onPressed: _refresh,
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: RihlaColors.primary.withValues(alpha: 0.85),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                  ),
-                                  child: Text('Retry', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w900)),
-                                ),
-                              ],
-                            ),
+                        return Center(
+                          child: Text(
+                            'Error: ${snap.error}',
+                            style: t.bodyLarge?.copyWith(color: Colors.white),
                           ),
                         );
                       }
 
-                      final hotels = snap.data ?? const <Hotel>[];
-
+                      final hotels = snap.data ?? const <HotelModel>[];
                       if (hotels.isEmpty) {
                         return Center(
-                          child: Glass(
-                            padding: const EdgeInsets.all(16),
-                            borderRadius: BorderRadius.circular(26),
-                            opacity: 0.34,
-                            blur: 18,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.search_off_rounded, color: Colors.white, size: 26),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'No hotels found',
-                                  style: t.titleLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Try another city.',
-                                  style: t.bodyMedium?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.84),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: Text(
+                            'No hotels found',
+                            style: t.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w700),
                           ),
                         );
                       }
 
                       return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
                         itemCount: hotels.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (_, i) {
                           final h = hotels[i];
                           return HotelCard(
-                            h: h,
-                            onTap: () => _openHotelSheet(context, h),
-                          );
+                            hotel: h,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => HotelBookingScreen(hotel: h),
+                                ),
+                              );
+                            },
+                          ).animate().fadeIn(delay: (70 * i).ms).slideY(begin: 0.06, end: 0);
                         },
-                      ).animate().fadeIn(duration: 240.ms);
+                      );
                     },
                   ),
                 ),
@@ -324,401 +211,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _openHotelSheet(BuildContext context, Hotel h) {
-    final t = Theme.of(context).textTheme;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          child: Glass(
-            padding: const EdgeInsets.all(14),
-            borderRadius: BorderRadius.circular(28),
-            opacity: 0.52,
-            blur: 18,
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: Image.asset(
-                      h.image,
-                      height: 170,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 170,
-                        alignment: Alignment.center,
-                        color: Colors.white.withValues(alpha: 0.10),
-                        child: const Icon(Icons.hotel_rounded, color: Colors.white, size: 40),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          h.name,
-                          style: t.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        h.rating.toStringAsFixed(1),
-                        style: t.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${h.city} • ${h.reviewsCount} reviews',
-                    style: t.labelLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.78),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: h.tags.map((e) => _Tag(text: e)).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Top Reviews',
-                    style: t.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 8),
-                  if (h.reviews.isEmpty)
-                    Text(
-                      'No reviews yet.',
-                      style: t.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    )
-                  else
-                    ...h.reviews.take(2).map((rv) => _ReviewTile(r: rv)),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${h.priceMadPerNight} MAD / night',
-                          style: t.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => HotelBookingScreen(hotel: h),
-                            ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          backgroundColor: RihlaColors.primary.withValues(alpha: 0.85),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('Book', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w900)),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.arrow_forward_rounded, size: 18),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ).animate().fadeIn(duration: 220.ms).slideY(begin: 0.08, end: 0),
-        );
-      },
-    );
-  }
-}
-
-class _CityAndDatesRow extends StatelessWidget {
-  final TextEditingController cityCtrl;
-  final DateTime checkIn;
-  final DateTime checkOut;
-  final String Function(DateTime) fmt;
-  final VoidCallback onPickDates;
-  final VoidCallback onApply;
-
-  const _CityAndDatesRow({
-    required this.cityCtrl,
-    required this.checkIn,
-    required this.checkOut,
-    required this.fmt,
-    required this.onPickDates,
-    required this.onApply,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-
-    Widget pill({required IconData icon, required Widget child, VoidCallback? onTap}) {
-      final w = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: Icon(icon, color: Colors.white, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: child),
-          ],
-        ),
-      );
-
-      if (onTap == null) return w;
-      return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(22), child: w);
-    }
-
-    return Row(
-      children: [
-        Expanded(
-          flex: 6,
-          child: Glass(
-            padding: const EdgeInsets.all(12),
-            borderRadius: BorderRadius.circular(24),
-            opacity: 0.40,
-            blur: 18,
-            child: Column(
-              children: [
-                pill(
-                  icon: Icons.location_city_rounded,
-                  child: TextField(
-                    controller: cityCtrl,
-                    style: t.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'City (ex: Marrakech)',
-                      hintStyle: t.titleSmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.62),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    onChanged: (_) => onApply(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                pill(
-                  icon: Icons.date_range_rounded,
-                  onTap: onPickDates,
-                  child: Text(
-                    '${fmt(checkIn)}  →  ${fmt(checkOut)}',
-                    style: t.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 3,
-          child: InkWell(
-            onTap: onApply,
-            borderRadius: BorderRadius.circular(26),
-            child: Container(
-              height: 122,
-              decoration: BoxDecoration(
-                gradient: RihlaColors.premiumGradient,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: const [
-                  BoxShadow(color: RihlaColors.shadow, blurRadius: 18, offset: Offset(0, 12)),
-                ],
-              ),
-              child: const Center(
-                child: Icon(Icons.search_rounded, color: Colors.white, size: 28),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HotelQuickFilters extends StatefulWidget {
-  final ValueChanged<int>? onChanged;
-  const _HotelQuickFilters({this.onChanged});
-
-  @override
-  State<_HotelQuickFilters> createState() => _HotelQuickFiltersState();
-}
-
-class _HotelQuickFiltersState extends State<_HotelQuickFilters> {
-  int active = 0;
-  final items = const ['Recommended', 'Top rated', 'Best value'];
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(items.length, (i) {
-        final isActive = i == active;
-        return Expanded(
-          child: InkWell(
-            onTap: () {
-              setState(() => active = i);
-              widget.onChanged?.call(i);
-            },
-            borderRadius: BorderRadius.circular(999),
-            child: Container(
-              margin: EdgeInsets.only(right: i == items.length - 1 ? 0 : 8),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: isActive ? Colors.white.withValues(alpha: 0.22) : Colors.white.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white.withValues(alpha: isActive ? 0.20 : 0.12)),
-              ),
-              child: Center(
-                child: Text(
-                  items[i],
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _ReviewTile extends StatelessWidget {
-  final HotelReview r;
-  const _ReviewTile({required this.r});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.person_rounded, color: Colors.white),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          r.name,
-                          style: t.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        r.rating.toStringAsFixed(1),
-                        style: t.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        r.timeAgo,
-                        style: t.labelLarge?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.70),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    r.comment,
-                    style: t.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.84),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  final String text;
-  const _Tag({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-      ),
-      child: Text(
-        text,
-        style: t.labelMedium?.copyWith(
-          color: Colors.white.withValues(alpha: 0.86),
-          fontWeight: FontWeight.w900,
-        ),
       ),
     );
   }
@@ -732,7 +224,7 @@ class _BlurBlob extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ImageFiltered(
-      imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+      imageFilter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
       child: Container(
         width: size,
         height: size,

@@ -1,14 +1,12 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../core/nav/app_router.dart';
-import '../../core/theme/rihla_colors.dart';
-import '../../core/ui/chips_row.dart';
-import '../../core/ui/glass.dart';
-import '../../core/ui/section_title.dart';
-import '../../data/mock.dart';
+import 'package:rihla2026/core/theme/rihla_colors.dart';
+import 'package:rihla2026/core/ui/glass.dart';
+
+import 'package:rihla2026/data/models/event_model.dart';
+import 'package:rihla2026/data/api/events_api.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -18,9 +16,9 @@ class EventsScreen extends StatefulWidget {
 }
 
 class _EventsScreenState extends State<EventsScreen> {
-  int _cat = 0;
+  int _selectedCategory = 0;
 
-  final _cats = const [
+  final List<String> _categories = const [
     'All',
     'Culture',
     'Food',
@@ -30,16 +28,42 @@ class _EventsScreenState extends State<EventsScreen> {
     'Sport',
   ];
 
-  List<MockEvent> _filtered() {
-    if (_cat == 0) return MockData.events;
-    final c = _cats[_cat];
-    return MockData.events.where((e) => e.category == c).toList();
+  final EventsApi _api = EventsApi();
+  late Future<List<EventModel>> _futureEvents;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureEvents = _api.getAll(); // ✅ backend: GET /api/events
+  }
+
+  List<EventModel> _filter(List<EventModel> events) {
+    if (_selectedCategory == 0) return events;
+    final cat = _categories[_selectedCategory];
+    return events.where((e) => (e.categorie ?? '').trim() == cat).toList();
+  }
+
+  ImageProvider _imageProvider(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return const AssetImage('assets/events/event_1.jpg');
+
+    // URL image (backend)
+    if (s.startsWith('http://') || s.startsWith('https://')) {
+      return NetworkImage(s);
+    }
+
+    // Asset
+    if (s.startsWith('assets/')) {
+      return AssetImage(s);
+    }
+
+    // fallback
+    return const AssetImage('assets/events/event_1.jpg');
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final events = _filtered();
 
     return Scaffold(
       body: Stack(
@@ -55,7 +79,7 @@ class _EventsScreenState extends State<EventsScreen> {
                   Colors.black.withValues(alpha: 0.12),
                   Colors.black.withValues(alpha: 0.06),
                   Colors.black.withValues(alpha: 0.30),
-                  Colors.black.withValues(alpha: 0.44),
+                  Colors.black.withValues(alpha: 0.62),
                 ],
               ),
             ),
@@ -65,126 +89,125 @@ class _EventsScreenState extends State<EventsScreen> {
             left: -40,
             child: _BlurBlob(size: 260, color: RihlaColors.accent.withValues(alpha: 0.14)),
           ),
-          Positioned(
-            bottom: -90,
-            right: -50,
-            child: _BlurBlob(size: 300, color: RihlaColors.primary.withValues(alpha: 0.13)),
-          ),
           SafeArea(
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Glass(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    borderRadius: BorderRadius.circular(22),
+                    opacity: 0.32,
+                    blur: 18,
+                    child: Row(
                       children: [
-
-                        Row(
-                          children: [
-                            Glass(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              borderRadius: BorderRadius.circular(18),
-                              opacity: 0.34,
-                              blur: 18,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.local_activity_rounded, color: Colors.white, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Events',
-                                    style: t.labelLarge?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Spacer(),
-                            _RoundIcon(
-                              icon: Icons.tune_rounded,
-                              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Filters (UI only)')),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
+                        const Icon(Icons.event_rounded, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
                         Text(
-                          'Curated experiences',
-                          style: t.headlineMedium?.copyWith(
+                          'Events',
+                          style: t.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
                           ),
-                        )
-                            .animate()
-                            .fadeIn(duration: 260.ms)
-                            .slideY(begin: 0.10, end: 0, curve: Curves.easeOutCubic),
-
-                        const SizedBox(height: 6),
-
+                        ),
+                        const Spacer(),
                         Text(
-                          'Discover premium events, handpicked for culture and comfort.',
-                          style: t.bodyLarge?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.86),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        )
-                            .animate()
-                            .fadeIn(delay: 120.ms, duration: 320.ms)
-                            .slideY(begin: 0.10, end: 0, curve: Curves.easeOutCubic),
-
-                        const SizedBox(height: 14),
-
-
-                        ChipsRow(
-                          items: _cats,
-                          selectedIndex: _cat,
-                          onChanged: (i) => setState(() => _cat = i),
-                        )
-                            .animate()
-                            .fadeIn(delay: 200.ms, duration: 320.ms)
-                            .slideY(begin: 0.10, end: 0, curve: Curves.easeOutCubic),
-
-                        const SizedBox(height: 18),
-
-                        SectionTitle(
-                          title: 'For you',
-                          actionText: 'Refresh',
-                          onAction: () => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Refresh (UI only)')),
+                          'Curated nearby',
+                          style: t.labelLarge?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.82),
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 12),
                       ],
                     ),
                   ),
                 ),
 
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 120),
-                  sliver: SliverList.separated(
-                    itemCount: events.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                SizedBox(
+                  height: 54,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
                     itemBuilder: (_, i) {
-                      final e = events[i];
-                      return _EventCard(
-                        event: e,
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          Routes.eventDetails,
-                          arguments: e,
+                      final active = i == _selectedCategory;
+                      return InkWell(
+                        onTap: () => setState(() => _selectedCategory = i),
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: active
+                                ? Colors.white.withValues(alpha: 0.18)
+                                : Colors.white.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: active
+                                  ? Colors.white.withValues(alpha: 0.28)
+                                  : Colors.white.withValues(alpha: 0.14),
+                            ),
+                          ),
+                          child: Text(
+                            _categories[i],
+                            style: t.labelLarge?.copyWith(
+                              color: Colors.white.withValues(alpha: active ? 0.92 : 0.82),
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ),
-                      )
-                          .animate()
-                          .fadeIn(delay: (70 * i).ms, duration: 360.ms)
-                          .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic);
+                      );
+                    },
+                  ),
+                ),
+
+                Expanded(
+                  child: FutureBuilder<List<EventModel>>(
+                    future: _futureEvents,
+                    builder: (context, snap) {
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snap.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              'Failed to load events.\n${snap.error}',
+                              textAlign: TextAlign.center,
+                              style: t.bodyLarge?.copyWith(color: Colors.white),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final items = _filter(snap.data ?? const <EventModel>[]);
+                      if (items.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'No events found.',
+                            style: t.titleLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) => _EventCard(
+                          event: items[i],
+                          imageProvider: _imageProvider,
+                        )
+                            .animate()
+                            .fadeIn(delay: (60 * i).ms, duration: 260.ms)
+                            .slideY(begin: 0.06, end: 0, curve: Curves.easeOutCubic),
+                      );
                     },
                   ),
                 ),
@@ -198,160 +221,88 @@ class _EventsScreenState extends State<EventsScreen> {
 }
 
 class _EventCard extends StatelessWidget {
-  final MockEvent event;
-  final VoidCallback onTap;
+  final EventModel event;
+  final ImageProvider Function(String raw) imageProvider;
 
-  const _EventCard({required this.event, required this.onTap});
+  const _EventCard({
+    required this.event,
+    required this.imageProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
 
-    return InkWell(
+    // ✅ fields that exist in your EventModel:
+    final title = (event.nom ?? 'Event').trim();
+    final cat = (event.categorie ?? 'General').trim();
+    final place = (event.lieu ?? 'Morocco').trim();
+    final img = (event.imageUrl ?? '').trim();
+
+    return Glass(
+      padding: const EdgeInsets.all(14),
       borderRadius: BorderRadius.circular(26),
-      onTap: onTap,
-      child: Container(
-        height: 168,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: const [
-            BoxShadow(
-              color: RihlaColors.shadow,
-              blurRadius: 26,
-              offset: Offset(0, 16),
+      opacity: 0.34,
+      blur: 18,
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Image(
+              image: imageProvider(img),
+              width: 112,
+              height: 112,
+              fit: BoxFit.cover,
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(event.image, fit: BoxFit.cover),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.10),
-                      Colors.black.withValues(alpha: 0.58),
-                    ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-
-
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
-                  ),
-                  child: Text(
-                    event.category,
-                    style: t.labelLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      fontWeight: FontWeight.w900,
-                    ),
+                const SizedBox(height: 6),
+                Text(
+                  '$cat • $place',
+                  style: t.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.84),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-
-
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    event.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: t.titleLarge?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${event.location} · ${event.dateLabel}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: t.bodyMedium?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.86),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                gradient: RihlaColors.premiumGradient,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-                            ),
-                          ],
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+                      ),
+                      child: Text(
+                        'Details',
+                        style: t.labelLarge?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.90),
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
-                  ),
+                    const Spacer(),
+                    const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RoundIcon extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _RoundIcon({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
-        ),
-        child: Icon(icon, color: Colors.white.withValues(alpha: 0.92), size: 20),
+        ],
       ),
     );
   }
@@ -360,7 +311,6 @@ class _RoundIcon extends StatelessWidget {
 class _BlurBlob extends StatelessWidget {
   final double size;
   final Color color;
-
   const _BlurBlob({required this.size, required this.color});
 
   @override

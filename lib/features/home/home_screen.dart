@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -21,6 +20,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _onSearch() {
+    // ✅ Keep UI, but no "UI-only" mock behavior.
+    // For now, reuse Trips screen as "search / planning" entry.
+    Navigator.pushNamed(context, Routes.trips, arguments: searchCtrl.text.trim());
   }
 
   @override
@@ -45,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-
           Positioned(
             top: -90,
             left: -70,
@@ -138,7 +142,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             const SizedBox(width: 10),
 
-
                             InkWell(
                               onTap: () => Navigator.pushNamed(context, Routes.profile),
                               borderRadius: BorderRadius.circular(18),
@@ -211,14 +214,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
+                                  onSubmitted: (_) => _onSearch(),
                                 ),
                               ),
                               InkWell(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Search is UI-only')),
-                                  );
-                                },
+                                onTap: _onSearch,
                                 borderRadius: BorderRadius.circular(18),
                                 child: Container(
                                   width: 42,
@@ -239,7 +239,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         const SizedBox(height: 18),
 
-
                         Row(
                           children: [
                             Expanded(
@@ -255,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: _QuickAction(
                                 title: 'Transport',
                                 subtitle: 'Train • Bus • Flight',
-                                icon: Icons.confirmation_number_rounded,
+                                icon: Icons.directions_bus_rounded, // ✅ better icon, same UI
                                 onTap: () => Navigator.pushNamed(context, Routes.bookingHub),
                               ),
                             ),
@@ -291,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _SectionHeader(
                           title: 'Recommended for you',
                           action: 'See all',
-                          onTap: () {},
+                          onTap: () => Navigator.pushNamed(context, Routes.trips),
                         ),
 
                         const SizedBox(height: 10),
@@ -306,11 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               subtitle: _featured[i].subtitle,
                               image: _featured[i].image,
                               tag: _featured[i].tag,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Open: ${_featured[i].title} (UI only)')),
-                                );
-                              },
+                              onTap: () => Navigator.pushNamed(context, Routes.trips),
                             ),
                             separatorBuilder: (_, __) => const SizedBox(width: 12),
                             itemCount: _featured.length,
@@ -322,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _SectionHeader(
                           title: 'Top reviews',
                           action: 'Trusted',
-                          onTap: () {},
+                          onTap: () => Navigator.pushNamed(context, Routes.profile),
                         ),
 
                         const SizedBox(height: 10),
@@ -334,8 +329,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                   sliver: SliverList.separated(
-                    itemBuilder: (_, i) =>
-                        _ReviewCard(r: _reviews[i]).animate().fadeIn(duration: 220.ms).slideY(begin: 0.05, end: 0),
+                    itemBuilder: (_, i) => _ReviewCard(r: _reviews[i])
+                        .animate()
+                        .fadeIn(duration: 220.ms)
+                        .slideY(begin: 0.05, end: 0),
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemCount: _reviews.length,
                   ),
@@ -400,7 +397,10 @@ class _QuickAction extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: t.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.78), fontWeight: FontWeight.w700),
+                    style: t.labelLarge?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.78),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -506,10 +506,7 @@ class _FeaturedCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                       ),
-                      child: Text(
-                        tag,
-                        style: t.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                      ),
+                      child: Text(tag, style: t.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
                     ),
                     const Spacer(),
                     Text(
@@ -519,7 +516,10 @@ class _FeaturedCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       subtitle,
-                      style: t.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.84), fontWeight: FontWeight.w600),
+                      style: t.bodyLarge?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.84),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -580,14 +580,21 @@ class _ReviewCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       r.timeAgo,
-                      style: t.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.70), fontWeight: FontWeight.w700),
+                      style: t.labelLarge?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.70),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   r.comment,
-                  style: t.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.84), fontWeight: FontWeight.w600, height: 1.25),
+                  style: t.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.84),
+                    fontWeight: FontWeight.w600,
+                    height: 1.25,
+                  ),
                 ),
               ],
             ),
@@ -616,7 +623,7 @@ class _BlurBlob extends StatelessWidget {
   }
 }
 
-/* ------------------ Mock data (UI only) ------------------ */
+/* ------------------ Static Home Content (not feature mocks) ------------------ */
 
 class _Featured {
   final String title;
@@ -659,7 +666,12 @@ class _Review {
   final String comment;
   final String timeAgo;
 
-  const _Review({required this.name, required this.rating, required this.comment, required this.timeAgo});
+  const _Review({
+    required this.name,
+    required this.rating,
+    required this.comment,
+    required this.timeAgo,
+  });
 }
 
 const _reviews = <_Review>[

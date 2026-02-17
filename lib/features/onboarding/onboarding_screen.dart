@@ -31,7 +31,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _next() {
-    if (_index < OnboardingModel.items.length - 1) {
+    final last = OnboardingModel.items.length - 1;
+    if (_index < last) {
       _controller.nextPage(
         duration: const Duration(milliseconds: 420),
         curve: Curves.easeOutCubic,
@@ -50,7 +51,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 520),
             switchInCurve: Curves.easeOutCubic,
@@ -61,9 +61,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
 
-
           const _CinematicOverlay(),
-
 
           Positioned(
             top: -70,
@@ -79,7 +77,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           SafeArea(
             child: Column(
               children: [
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Row(
@@ -120,7 +117,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
 
-
                 Expanded(
                   child: PageView.builder(
                     controller: _controller,
@@ -135,14 +131,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
 
-
                 Padding(
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 22),
                   child: Column(
                     children: [
                       _PremiumIndicator(count: items.length, index: _index),
                       const SizedBox(height: 14),
-
                       Row(
                         children: [
                           Expanded(
@@ -228,7 +222,6 @@ class _CinematicOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: RadialGradient(
@@ -241,7 +234,6 @@ class _CinematicOverlay extends StatelessWidget {
             ),
           ),
         ),
-
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -259,7 +251,6 @@ class _CinematicOverlay extends StatelessWidget {
     );
   }
 }
-
 
 class _OnboardingPageDesigned extends StatelessWidget {
   final OnboardingModel model;
@@ -283,15 +274,14 @@ class _OnboardingPageDesigned extends StatelessWidget {
       builder: (context, c) {
         final h = c.maxHeight;
         final heroH = (h * 0.56).clamp(320.0, 520.0);
-        final gap = 14.0;
 
         return AnimatedBuilder(
           animation: controller,
           builder: (context, _) {
             double page = activeIndex.toDouble();
-            try {
-              if (controller.hasClients && controller.page != null) page = controller.page!;
-            } catch (_) {}
+            if (controller.hasClients && controller.page != null) {
+              page = controller.page!;
+            }
 
             final delta = (page - index).clamp(-1.0, 1.0);
             final parallax = delta * 18;
@@ -301,7 +291,6 @@ class _OnboardingPageDesigned extends StatelessWidget {
               child: Column(
                 children: [
                   const Spacer(),
-
                   Transform.translate(
                     offset: Offset(parallax, 0),
                     child: Container(
@@ -321,12 +310,7 @@ class _OnboardingPageDesigned extends StatelessWidget {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          Image.asset(
-                            model.image,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                          ),
-
+                          Image.asset(model.image, fit: BoxFit.cover),
                           Container(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
@@ -352,57 +336,46 @@ class _OnboardingPageDesigned extends StatelessWidget {
                     duration: 520.ms,
                     curve: Curves.easeOutCubic,
                   ),
-
-                  SizedBox(height: gap),
-
-
-                  Align(
-                    alignment: Alignment.center,
-                    child: Glass(
-                      padding: const EdgeInsets.all(18),
-                      borderRadius: BorderRadius.circular(30),
-                      opacity: 0.42,
-                      blur: 20,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _Chip(text: model.chip)
-                              .animate(target: isActive ? 1 : 0)
-                              .fadeIn(duration: 320.ms)
-                              .slideY(begin: 0.14, end: 0, duration: 420.ms, curve: Curves.easeOutCubic),
-
-                          const SizedBox(height: 12),
-
-                          Text(
-                            model.title,
-                            style: t.headlineMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          )
-                              .animate(target: isActive ? 1 : 0)
-                              .fadeIn(delay: 90.ms, duration: 360.ms)
-                              .slideY(begin: 0.14, end: 0, duration: 460.ms, curve: Curves.easeOutCubic),
-
-                          const SizedBox(height: 10),
-
-                          Text(
-                            model.subtitle,
-                            style: t.bodyLarge?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.88),
-                              fontWeight: FontWeight.w600,
-                              height: 1.25,
-                            ),
-                          )
-                              .animate(target: isActive ? 1 : 0)
-                              .fadeIn(delay: 150.ms, duration: 360.ms)
-                              .slideY(begin: 0.16, end: 0, duration: 520.ms, curve: Curves.easeOutCubic),
-                        ],
-                      ),
+                  const SizedBox(height: 14),
+                  Glass(
+                    padding: const EdgeInsets.all(18),
+                    borderRadius: BorderRadius.circular(30),
+                    opacity: 0.42,
+                    blur: 20,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _Chip(text: model.chip)
+                            .animate(target: isActive ? 1 : 0)
+                            .fadeIn(duration: 320.ms)
+                            .slideY(begin: 0.14, end: 0, duration: 420.ms, curve: Curves.easeOutCubic),
+                        const SizedBox(height: 12),
+                        Text(
+                          model.title,
+                          style: t.headlineMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        )
+                            .animate(target: isActive ? 1 : 0)
+                            .fadeIn(delay: 90.ms, duration: 360.ms)
+                            .slideY(begin: 0.14, end: 0, duration: 460.ms, curve: Curves.easeOutCubic),
+                        const SizedBox(height: 10),
+                        Text(
+                          model.subtitle,
+                          style: t.bodyLarge?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.88),
+                            fontWeight: FontWeight.w600,
+                            height: 1.25,
+                          ),
+                        )
+                            .animate(target: isActive ? 1 : 0)
+                            .fadeIn(delay: 150.ms, duration: 360.ms)
+                            .slideY(begin: 0.16, end: 0, duration: 520.ms, curve: Curves.easeOutCubic),
+                      ],
                     ),
                   ),
-
                   const Spacer(),
                 ],
               ),
@@ -420,6 +393,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -429,7 +403,7 @@ class _Chip extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+        style: t.labelLarge?.copyWith(
           color: Colors.white.withValues(alpha: 0.92),
           fontWeight: FontWeight.w900,
         ),
