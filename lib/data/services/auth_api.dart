@@ -118,6 +118,7 @@ class AuthApi {
           'password': password,
           if (telephone != null && telephone.trim().isNotEmpty) 'telephone': telephone.trim(),
         },
+        options: Options(responseType: ResponseType.plain),
       );
     } on DioException catch (e) {
       throw ApiClient().mapDioError(e);
